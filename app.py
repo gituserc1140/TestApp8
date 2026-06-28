@@ -1,22 +1,30 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
+import os
+
+# Configuration for file path
+BLOG_POSTS_FILE = os.getenv('BLOG_POSTS_FILE', 'blog_posts.csv')
 
 # Sample data for blog posts
-blog_posts = [
-    {'id': 1, 'title': 'First Post', 'content': 'This is the first blog post.', 'date': '2023-10-01'},
-    {'id': 2, 'title': 'Second Post', 'content': 'This is the second blog post.', 'date': '2023-10-02'}
-]
+blog_posts = []
 
 def save_posts(posts):
-    df = pd.DataFrame(posts)
-    df.to_csv('blog_posts.csv', index=False)
+    try:
+        df = pd.DataFrame(posts)
+        df.to_csv(BLOG_POSTS_FILE, index=False)
+        st.success('Changes saved successfully!')
+    except Exception as e:
+        st.error(f"Failed to save posts: {e}")
 
 def load_posts():
     try:
-        df = pd.read_csv('blog_posts.csv')
+        df = pd.read_csv(BLOG_POSTS_FILE)
         return df.to_dict('records')
     except FileNotFoundError:
+        return []
+    except Exception as e:
+        st.error(f"Failed to load posts: {e}")
         return []
 
 st.title('Simple Blog App')
@@ -40,13 +48,16 @@ with st.form(key='blog_form'):
     submit_button = st.form_submit_button(label='Publish')
 
     if submit_button:
-        new_post = {
-            'id': len(blog_posts) + 1,
-            'title': title,
-            'content': content,
-            'date': datetime.now().strftime('%Y-%m-%d')
-        }
-        blog_posts.append(new_post)
-        save_posts(blog_posts)
-        st.success('Blog post published successfully!')
-        st.experimental_rerun()
+        if not title or not content:
+            st.error("Title and content cannot be empty.")
+        else:
+            new_post = {
+                'id': len(blog_posts) + 1,
+                'title': title,
+                'content': content,
+                'date': datetime.now().strftime('%Y-%m-%d')
+            }
+            blog_posts.append(new_post)
+            save_posts(blog_posts)
+            st.success('Blog post published successfully!')
+            st.rerun()
